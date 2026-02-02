@@ -1,12 +1,14 @@
 import type { Product } from '../types';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   product: Product;
 }
 
 const ProductCard = ({ product }: Props) => {
+   const navigate = useNavigate();
   return (
-    <div className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all hover:shadow-xl hover:shadow-blue-500/5">
+    <div onClick={() => navigate(`/product/${product.id}`)} className="group cursor-pointer overflow-hidden rounded-2xl border border-slate-100 bg-white transition-all hover:shadow-xl hover:shadow-blue-500/5">
       <div className="relative aspect-square overflow-hidden bg-slate-100">
         <img 
           src={product.images[0] || 'https://via.placeholder.com/300'} 

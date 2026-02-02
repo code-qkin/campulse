@@ -7,7 +7,8 @@ export interface Product {
   price: number;
   category: 'Textbooks' | 'Dorm Essentials' | 'Electronics' | 'Services' | 'Other';
   images: string[];   
-  sellerId: string;    
+  sellerId: string;
+  sellerName?: string;
   university: string; 
   condition: 'New' | 'Used - Like New' | 'Used - Fair';
   createdAt: number;   
