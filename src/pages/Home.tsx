@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '../services/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom'; // IMPORT THIS
 import ProductCard from '../components/ProductCard';
 import PostItemModal from '../components/PostItemModal';
@@ -10,7 +9,6 @@ import type{ Product } from '../types';
 import { 
   Search01Icon, 
   Add01Icon, 
-  Logout01Icon, 
   UniversityIcon,
   FilterHorizontalIcon
 } from 'hugeicons-react';
