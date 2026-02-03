@@ -1,88 +1,179 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import type{ Product } from '../types';
+import PulseAlert from '../components/PulseAlert';
+import { 
+  ArrowLeft01Icon, 
+  WhatsappIcon, 
+  UserCircleIcon, 
+  Tag01Icon
+} from 'hugeicons-react';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
   const [product, setProduct] = useState<Product | null>(null);
+  const [sellerPhone, setSellerPhone] = useState<string | null>(null); // Store seller's number
   const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductAndSeller = async () => {
       if (!id) return;
-      const docRef = doc(db, "products", id);
-      const docSnap = await getDoc(docRef);
+      try {
+        // 1. Fetch Product
+        const docRef = doc(db, "products", id);
+        const docSnap = await getDoc(docRef);
 
-      if (docSnap.exists()) {
-        setProduct({ id: docSnap.id, ...docSnap.data() } as Product);
+        if (docSnap.exists()) {
+          const productData = { id: docSnap.id, ...docSnap.data() } as Product;
+          setProduct(productData);
+
+          // 2. Fetch Seller's Phone Number using sellerId
+          const sellerRef = doc(db, "users", productData.sellerId);
+          const sellerSnap = await getDoc(sellerRef);
+          
+          if (sellerSnap.exists()) {
+             setSellerPhone(sellerSnap.data().whatsapp || null);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchProduct();
+    fetchProductAndSeller();
   }, [id]);
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
-  if (!product) return <div className="text-center py-20">Product not found.</div>;
+  const handleContactSeller = () => {
+    if (!product) return;
+
+    if (!sellerPhone) {
+      // Fallback to Email if they haven't added a WhatsApp number yet
+      const subject = encodeURIComponent(`Interested in: ${product.title}`);
+      window.location.href = `mailto:?subject=${subject}`;
+      setAlert({ msg: "Seller hasn't added WhatsApp. Opening Email instead.", type: 'error' });
+      return;
+    }
+
+    // 1. Format the Number for WhatsApp API
+    let formattedPhone = sellerPhone.replace(/\s/g, '').replace('+', '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '234' + formattedPhone.substring(1);
+    }
+
+    // 2. Create the Message
+    const text = encodeURIComponent(
+      `Hi! I saw your listing for *${product.title}* (₦${product.price}) on CamPulse. Is it still available?`
+    );
+
+    // 3. Open WhatsApp
+    window.open(`https://wa.me/${formattedPhone}?text=${text}`, '_blank');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (!product) return null;
+
+  const isOwner = auth.currentUser?.uid === product.sellerId;
 
   return (
     <div className="min-h-screen bg-white pb-20">
-      {/* Back Button */}
-      <div className="mx-auto max-w-7xl px-6 py-6">
-        <button onClick={() => navigate(-1)} className="group flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors">
-          <span className="text-xl">←</span> Back to Marketplace
+      {alert && <PulseAlert message={alert.msg} type={alert.type} onClose={() => setAlert(null)} />}
+
+      {/* Nav */}
+      <div className="mx-auto max-w-7xl px-6 py-6 sticky top-0 z-10 bg-white/80 backdrop-blur-sm">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="group flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
+        >
+          <ArrowLeft01Icon size={20} /> Back
         </button>
       </div>
 
       <div className="mx-auto max-w-7xl px-6 lg:grid lg:grid-cols-2 lg:gap-x-12">
-        {/* Image Gallery */}
-        <div className="overflow-hidden rounded-3xl bg-slate-100 aspect-square">
-          <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
+        {/* Image */}
+        <div className="overflow-hidden rounded-[2.5rem] bg-slate-100 aspect-square shadow-inner border border-slate-100">
+          <img 
+            src={product.images[0]} 
+            alt={product.title} 
+            className="h-full w-full object-cover transition-transform duration-700 hover:scale-110" 
+          />
         </div>
 
-        {/* Product Info */}
-        <div className="mt-10 lg:mt-0">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600 uppercase tracking-widest">
-              {product.category}
+        {/* Details */}
+        <div className="mt-10 lg:mt-0 flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black text-blue-600 uppercase tracking-widest border border-blue-100">
+              <Tag01Icon size={12} /> {product.category}
             </span>
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-l border-slate-200 pl-3">
               {product.university}
             </span>
           </div>
           
-          <h1 className="mt-4 text-4xl font-black text-slate-900 tracking-tight leading-tight">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-[1.1] md:text-5xl">
             {product.title}
           </h1>
           
-          <div className="mt-6 flex items-center justify-between border-y border-slate-100 py-6">
-            <div className="text-3xl font-black text-blue-600 italic">
-              ₦{product.price.toLocaleString()}
+          <div className="mt-8 flex items-center justify-between border-y border-slate-100 py-8">
+            <div className="flex items-center gap-1 text-4xl font-black text-blue-600">
+              <span className="text-blue-300">₦</span>
+              <span>{product.price.toLocaleString()}</span>
             </div>
             <div className="text-right">
-              <p className="text-xs font-bold uppercase text-slate-400">Listed by</p>
-              <p className="font-bold text-slate-800">{product.sellerName || "Campus Student"}</p>
+              <p className="flex items-center justify-end gap-1 text-[10px] font-black uppercase text-slate-300 tracking-widest mb-1">
+                <UserCircleIcon size={12} /> Seller
+              </p>
+              <p className="font-bold text-slate-800 text-lg">{product.sellerName || "Student"}</p>
             </div>
           </div>
 
           <div className="mt-8">
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Description</h3>
-            <p className="mt-4 text-lg leading-relaxed text-slate-600">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Description</h3>
+            <p className="text-lg leading-relaxed text-slate-600 font-medium">
               {product.description}
             </p>
           </div>
 
-          {/* Action Button */}
-          <div className="mt-10">
-            <button className="flex w-full items-center justify-center gap-3 rounded-2xl bg-slate-900 py-5 text-lg font-bold text-white shadow-xl transition-all hover:bg-blue-600 hover:scale-[1.02] active:scale-95">
-              <span>Message Seller</span>
-              <span className="text-xl">💬</span>
-            </button>
-            <p className="mt-4 text-center text-xs font-medium text-slate-400">
-              Safety Tip: Always meet in a public campus area for transactions.
-            </p>
+          {/* ACTION AREA */}
+          <div className="mt-12">
+            {isOwner ? (
+              <div className="rounded-3xl bg-slate-50 p-1 border-2 border-dashed border-slate-200 text-center">
+                <div className="bg-white rounded-[1.3rem] p-6">
+                  <p className="text-slate-500 font-bold mb-4">This is your listing</p>
+                  <button 
+                    onClick={() => navigate('/profile')}
+                    className="w-full rounded-xl bg-slate-900 py-4 font-black text-white shadow-lg hover:bg-blue-600 transition-all active:scale-95"
+                  >
+                    Manage in Profile
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <button 
+                  onClick={handleContactSeller}
+                  className="group relative flex w-full items-center justify-center gap-4 rounded-[2rem] bg-[#25D366] py-5 text-xl font-black text-white shadow-xl shadow-green-500/20 transition-all hover:bg-[#20bd5a] hover:scale-[1.02] active:scale-95"
+                >
+                  <span>Chat on WhatsApp</span>
+                  <WhatsappIcon size={28} className="animate-pulse" />
+                </button>
+                <p className="mt-6 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
+                  <span className="text-green-500">Safe Deal:</span> Meet in public • Don't pay in advance
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

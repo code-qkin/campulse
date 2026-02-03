@@ -7,6 +7,7 @@ import Auth from './pages/Auth';
 import Home from './pages/Home';
 import Onboarding from './pages/onboarding';
 import ProductDetails from './pages/ProductDetails';
+import Profile from './pages/Profile';
 
 function App() {
   const { user, isOnboarded, loading } = useAuth();
@@ -62,6 +63,14 @@ function App() {
         <Route 
           path="/product/:id" 
           element={user ? <ProductDetails /> : <Navigate to="/auth" />} 
+        />
+
+        {/* PROFILE ROUTE (/profile):
+          - Protect this route. If a logged-out user tries to view a profile, 
+            send them to /auth first. */}
+        <Route 
+          path="/profile" 
+          element={user ? <Profile /> : <Navigate to="/auth" />} 
         />
 
         {/* CATCH-ALL ROUTE:
