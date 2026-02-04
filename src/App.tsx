@@ -10,11 +10,8 @@ import ProductDetails from './pages/ProductDetails';
 import Profile from './pages/Profile';
 
 function App() {
-  // Grab values from our Context
   const { user, userUni, loading } = useAuth();
 
-  // 1. BLOCK EVERYTHING while loading. 
-  // This prevents the "flash" of Onboarding page before we know the user's status.
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -32,10 +29,10 @@ function App() {
             !user ? (
               <Landing />
             ) : !userUni ? ( 
-              // Only show Onboarding if user is logged in BUT has no Uni
+              
               <Onboarding />
             ) : (
-              // If they have a Uni, go Home
+              
               <Home />
             )
           } 

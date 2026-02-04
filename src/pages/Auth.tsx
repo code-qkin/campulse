@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
+import PulseAlert from '../components/PulseAlert'; // Import the custom alert
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,13 +17,19 @@ const Auth = () => {
   const [university, setUniversity] = useState('');
   const [displayName, setDisplayName] = useState(''); 
   const [loading, setLoading] = useState(false);
+  
+  // Alert State
+  const [alert, setAlert] = useState<{ msg: string, type: 'success' | 'error' | 'info' } | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setAlert(null); // Clear previous alerts
+
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
+        // Success is handled by the auth state listener in App.tsx redirecting
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
@@ -40,12 +47,13 @@ const Auth = () => {
         });
       }
     } catch (error: any) {
-      alert(error.message);
+      // Clean up Firebase error messages
+      const msg = error.message.replace('Firebase: ', '').replace('Error (auth/', '').replace(').', '').replace(/-/g, ' ');
+      setAlert({ msg: msg.charAt(0).toUpperCase() + msg.slice(1), type: 'error' });
     } finally {
       setLoading(false);
     }
   };
-
   
   const handleGoogleAuth = async () => {
     const provider = new GoogleAuthProvider();
@@ -54,18 +62,22 @@ const Auth = () => {
       await setDoc(doc(db, "users", result.user.uid), {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: result.user.displayName, // Google gives us this
+        displayName: result.user.displayName,
         photoURL: result.user.photoURL,
         lastLogin: Date.now()
       }, { merge: true });
     } catch (error: any) {
-      alert(error.message);
+      const msg = error.message.replace('Firebase: ', '');
+      setAlert({ msg: msg, type: 'error' });
     }
   };
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Left Image Side (Same as before) */}
+      {/* Inject Alert Here */}
+      {alert && <PulseAlert message={alert.msg} type={alert.type} onClose={() => setAlert(null)} />}
+
+      {/* Left Image Side */}
       <div className="relative hidden w-1/2 lg:block">
         <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=1000" alt="Students" className="absolute inset-0 h-full w-full object-cover"/>
         <div className="absolute inset-0 bg-blue-600/30 backdrop-blur-[1px]"></div>
@@ -83,7 +95,7 @@ const Auth = () => {
           </h2>
 
           <form onSubmit={handleAuth} className="mt-8 space-y-4">
-            {/* NEW: Full Name Field (Only shows on Sign Up) */}
+            {/* Full Name Field (Only shows on Sign Up) */}
             {!isLogin && (
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Full Name</label>
@@ -139,7 +151,7 @@ const Auth = () => {
               />
             </div>
 
-            <button disabled={loading} className="w-full rounded-xl bg-blue-600 py-4 font-bold text-white shadow-lg hover:bg-blue-700 disabled:opacity-70">
+            <button disabled={loading} className="w-full rounded-xl bg-blue-600 py-4 font-bold text-white shadow-lg hover:bg-blue-700 disabled:opacity-70 transition-all active:scale-[0.98]">
               {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </button>
           </form>
@@ -150,7 +162,7 @@ const Auth = () => {
             <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-4 text-slate-400">Or</span></div>
           </div>
 
-          <button onClick={handleGoogleAuth} className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-4 font-bold text-slate-700 hover:bg-slate-50">
+          <button onClick={handleGoogleAuth} className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-4 font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="h-5 w-5" />
             Continue with Google
           </button>
