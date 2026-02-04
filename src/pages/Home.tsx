@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { db, auth } from '../services/firebase';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom'; // IMPORT THIS
+import { useNavigate } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import PostItemModal from '../components/PostItemModal';
-import PulseAlert from '../components/PulseAlert'; // IMPORT THIS
+import PulseAlert from '../components/PulseAlert';
 import type{ Product } from '../types';
 import { 
   Search01Icon, 
@@ -15,14 +15,13 @@ import {
 
 const Home = () => {
   const navigate = useNavigate();
-  // ... (keep existing product states)
   const [products, setProducts] = useState<Product[]>([]);
   const [userUni, setUserUni] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
-  // NEW STATES
+  // User Data State
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alert, setAlert] = useState<{ msg: string, type: 'success' | 'error' } | null>(null);
@@ -31,14 +30,14 @@ const Home = () => {
     setLoading(true);
     try {
       if (auth.currentUser) {
-        // 1. Get User Details (Uni + Phone)
+        // 1. Get User Details
         const userRef = doc(db, "users", auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         
         if (userSnap.exists()) {
           const data = userSnap.data();
           setUserUni(data.university);
-          setUserPhone(data.whatsapp || null); // Store phone number
+          setUserPhone(data.whatsapp || null);
 
           // 2. Fetch Products
           const q = query(
@@ -63,11 +62,10 @@ const Home = () => {
     fetchMarketplace();
   }, []);
 
-  // LOGIC TO CHECK PHONE BEFORE OPENING MODAL
   const handleOpenPostModal = () => {
     if (!userPhone) {
       setAlert({ msg: "Please add your WhatsApp number in Profile to post items!", type: "error" });
-      setTimeout(() => navigate('/profile'), 2000); // Redirect after 2 seconds
+      setTimeout(() => navigate('/profile'), 2000);
     } else {
       setIsModalOpen(true);
     }
@@ -80,7 +78,7 @@ const Home = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-20"> {/* pb-20 prevents content from hiding behind the mobile button */}
       {alert && <PulseAlert message={alert.msg} type={alert.type} onClose={() => setAlert(null)} />}
 
       <nav className="sticky top-0 z-40 border-b border-slate-100 bg-white/80 backdrop-blur-md">
@@ -90,6 +88,7 @@ const Home = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Desktop Button (Hidden on Mobile) */}
             <button 
               onClick={handleOpenPostModal}
               className="hidden sm:flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95"
@@ -163,6 +162,14 @@ const Home = () => {
           </div>
         )}
       </main>
+
+      {/* --- NEW MOBILE FLOATING ACTION BUTTON (FAB) --- */}
+      <button 
+        onClick={handleOpenPostModal}
+        className="fixed bottom-8 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl shadow-blue-600/30 transition-all hover:scale-110 active:scale-95 sm:hidden"
+      >
+        <Add01Icon size={24} />
+      </button>
 
       <PostItemModal 
         isOpen={isModalOpen} 

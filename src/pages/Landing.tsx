@@ -33,7 +33,7 @@ const Landing = () => {
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/auth')}
             className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-2xl hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
           >
             Start Trading Now
