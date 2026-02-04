@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
+import { useAuth } from '../context/AuthContext'; // Import from the new Context
 import { 
   UniversityIcon, 
   Search01Icon, 
@@ -23,10 +24,15 @@ const UNIVERSITIES = [
   "LAUTECH (Ladoke Akintola University)",
   "FUOYE (Federal University Oye-Ekiti)",
   "ADEKUNLE AJASIN (AAUA)",
-  "KWASU (Kwara State University)"
+  "KWASU (Kwara State University)",
+  "UNIUYO (University of Uyo)",
+  "UNIPORT (University of Port Harcourt)"
 ];
 
 const Onboarding = () => {
+  // Grab the update function from our Context
+  const { updateUserUni } = useAuth(); 
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUni, setSelectedUni] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -40,20 +46,20 @@ const Onboarding = () => {
 
     setSaving(true);
     try {
-      // CRITICAL: Save to the user's specific document ID
       await setDoc(doc(db, "users", auth.currentUser.uid), {
         university: selectedUni,
         email: auth.currentUser.email,
         displayName: auth.currentUser.displayName,
         photoURL: auth.currentUser.photoURL,
         joinedAt: Date.now()
-      }, { merge: true }); // Merge ensures we don't wipe existing data
+      }, { merge: true });
 
-      // Force reload to trigger useAuth check
-      window.location.reload(); 
+
+      updateUserUni(selectedUni); 
+      
     } catch (error) {
       console.error("Error saving campus:", error);
-      alert("Something went wrong. Please try again.");
+      alert("Something went wrong saving your campus. Please try again.");
       setSaving(false);
     }
   };
@@ -68,7 +74,7 @@ const Onboarding = () => {
             <UniversityIcon size={40} />
           </div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Select your Campus</h1>
-          <p className="mt-3 text-slate-500 font-medium">
+          <p className="mt-3 text-slate-500 font-medium leading-relaxed">
             CamPulse is hyperlocal. You will only see items posted by students at your school.
           </p>
         </div>
@@ -96,7 +102,7 @@ const Onboarding = () => {
                 onClick={() => setSelectedUni(uni)}
                 className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-all flex items-center justify-between group ${
                   selectedUni === uni 
-                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' 
+                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-[1.02]' 
                   : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 hover:border-slate-200'
                 }`}
               >
@@ -106,7 +112,7 @@ const Onboarding = () => {
             ))
           ) : (
             <div className="text-center py-8 text-slate-400 font-medium">
-              No university found. <br /> Try "FUTA" or "UNILAG"
+              No university found. <br /> Try searching for "FUTA" or "Lagos"
             </div>
           )}
         </div>
