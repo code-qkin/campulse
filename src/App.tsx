@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext'; // Import from context
+import { useAuth } from './context/AuthContext'; 
 
 // Pages
 import Landing from './pages/Landing';
@@ -7,12 +7,14 @@ import Auth from './pages/Auth';
 import Home from './pages/Home';
 import Onboarding from './pages/onboarding';
 import ProductDetails from './pages/ProductDetails';
-import Profile from './pages/Profile'; // Don't forget this!
+import Profile from './pages/Profile';
 
 function App() {
-  // Use userUni to check onboarding status
+  // Grab values from our Context
   const { user, userUni, loading } = useAuth();
 
+  // 1. BLOCK EVERYTHING while loading. 
+  // This prevents the "flash" of Onboarding page before we know the user's status.
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-white">
@@ -29,9 +31,11 @@ function App() {
           element={
             !user ? (
               <Landing />
-            ) : !userUni ? ( // Check userUni instead of isOnboarded
+            ) : !userUni ? ( 
+              // Only show Onboarding if user is logged in BUT has no Uni
               <Onboarding />
             ) : (
+              // If they have a Uni, go Home
               <Home />
             )
           } 
@@ -39,6 +43,7 @@ function App() {
         
         <Route path="/auth" element={user ? <Navigate to="/" /> : <Auth />} />
         
+        {/* Protected Routes - Redirect to Auth if not logged in */}
         <Route 
           path="/product/:id" 
           element={user ? <ProductDetails /> : <Navigate to="/auth" />} 

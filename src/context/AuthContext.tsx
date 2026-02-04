@@ -24,11 +24,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      // CRITICAL FIX: Do NOT set user yet. Wait for DB check.
+      
       if (currentUser) {
-        setUser(currentUser);
         try {
           const docRef = doc(db, "users", currentUser.uid);
           const docSnap = await getDoc(docRef);
+          
           if (docSnap.exists() && docSnap.data().university) {
             setUserUni(docSnap.data().university);
           } else {
@@ -38,17 +40,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error("Auth Error:", err);
           setUserUni(null);
         }
+        // NOW we set the user, ensuring userUni is already ready
+        setUser(currentUser);
       } else {
         setUser(null);
         setUserUni(null);
       }
+      
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  
   const updateUserUni = (uni: string) => {
     setUserUni(uni);
   };
